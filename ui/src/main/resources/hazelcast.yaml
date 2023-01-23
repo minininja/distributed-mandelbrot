@@ -1,0 +1,13 @@
+hazelcast:
+  cluster-name: mandlebot
+  executor-service:
+    default:
+      statistics-enabled: true
+      pool-size: 1
+      queue-capacity: 10
+      split-brain-protection-ref: splitBrainProtectionRuleWithThreeNodes
+    mandlebrot:
+      statistics-enabled: true
+      pool-size: 1
+      queue-capacity: 20
+      split-brain-protection-ref: splitBrainProtectionRuleWithThreeNodes

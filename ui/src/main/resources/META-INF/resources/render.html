@@ -1,0 +1,127 @@
+<html>
+<head>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-jcrop/0.9.15/js/jquery.Jcrop.js"></script>
+    <script>
+        $(document).ready(function(){
+            $('#mandlebrotImage').Jcrop({
+                onSelect: function(c) {
+                    console.log(c.x + "," + c.y + " width: " + c.w + " height: " + c.h)
+                    const width = document.getElementById("width").value;
+                    const height = document.getElementById("height").value;
+                    const upperR = document.getElementById("currentUpperR");
+                    const upperI = document.getElementById("currentUpperI");
+                    const lowerR = document.getElementById("currentLowerR");
+                    const lowerI = document.getElementById("currentLowerI");
+
+                    var rRange = range(width, parseFloat(lowerR.value), parseFloat(upperR.value));
+                    var iRange = range(height, parseFloat(lowerI.value), parseFloat(upperI.value));
+
+                    console.log(c.x + "," + c.y + " " + c.w + "," + c.h);
+
+                    document.getElementById("nextLowerR").value = rRange[c.x];
+                    document.getElementById("nextLowerI").value = iRange[c.y];
+                    document.getElementById("nextUpperR").value = rRange[c.x + c.w];
+                    document.getElementById("nextUpperI").value = iRange[c.y + c.h];
+                }
+            })
+        })
+
+        function range(steps, lower, upper) {
+            var result = [];
+            var range = Math.sqrt(lower * lower + upper * upper);
+            for (var i = 0; i < steps; i++) {
+                const tmp = lower + range / steps * i
+                result.push(tmp);
+            }
+            return result;
+        }
+    </script>
+    <script>
+        function render() {
+            var canvas = document.getElementById("mandlebrotImage");
+            var width = document.getElementById("width").value;
+            var height = document.getElementById("height").value;
+            var iterations = document.getElementById("iterations").value;
+            var escape = document.getElementById("escape").value;
+
+            var upperR = document.getElementById("nextUpperR").value;
+            var upperI = document.getElementById("nextUpperI").value;
+            var lowerR = document.getElementById("nextLowerR").value;
+            var lowerI = document.getElementById("nextLowerI").value;
+            
+            document.getElementById("currentUpperR").value = upperR;
+            document.getElementById("currentUpperI").value = upperI;
+            document.getElementById("currentLowerR").value = lowerR;
+            document.getElementById("currentLowerI").value = lowerI;
+
+            var path = [width, height, iterations, escape, lowerR, lowerI, upperR, upperI].join("/");
+            console.log("path: " + path);
+
+            var ctx = canvas.getContext("2d");
+            ctx.width = width;
+            ctx.height = height;
+
+            var img = new Image();
+            var ws = new WebSocket('ws://localhost:8080/render/' + path + '/image.png');
+            var chunks = [];
+
+            ws.binaryType = 'arraybuffer';
+            ws.onmessage = function (event) {
+                console.log("socket: received message");
+                // chunks.push(event.data);
+                console.log("event", event);
+                var blob = new Blob([event.data]);
+                img.src = URL.createObjectURL(blob);
+                img.onload = function() {
+                    ctx.drawImage(img, 0, 0);
+                    URL.revokeObjectURL(img.src);
+                }
+            }
+
+            ws.onclose = function () {
+                console.log("socket: closed");
+            }
+        }
+    </script>
+</head>
+<body onload="render()">
+    <h1>Mandlebrot Renderer</h1>
+    <table>
+        <tr>
+            <td>
+                <input type="text" id="width" value="1024"  readonly/>
+                <br/>
+                <input type="text" id="nextLowerR" value="-2.5"/>
+                <br/>
+                <input type="text" id="currentLowerR" value="-2.5"/>
+            </td>
+            <td>
+                <input type="text" id="height" value="768" readonly/>
+                <br/>
+                <input type="text" id="nextLowerI" value="-1.5"/>
+                <br/>
+                <input type="text" id="currentLowerI" value="-1.5"/>
+            </td>
+            <td>
+                <input type="text" id="iterations" value="1000"/>
+                <br/>
+                <input type="text" id="nextUpperR" value="2.5"/>
+                <br/>
+                <input type="text" id="currentUpperR" value="2.5"/>
+            </td>
+            <td>
+                <input type="text" id="escape" value="4.0"/>
+                <br/>
+                <input type="text" id="nextUpperI" value="2.5"/>
+                <br/>
+                <input type="text" id="currentUpperI" value="2.5"/>
+            </td>
+            <td>
+                <input type="button" onclick="render()" value="Render"/>
+            </td>
+        </tr>
+    </table>
+    <canvas id="mandlebrotImage" width="1024" height="768"/ >
+</body>
+</html>
